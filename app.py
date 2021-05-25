@@ -2,7 +2,7 @@ import json, os, ast
 from flask import Flask, render_template, redirect, url_for
 from google.oauth2 import service_account
 from dotenv import load_dotenv
-import gspread
+import gspread, pandas
 
 
 def get_credential():
@@ -39,13 +39,20 @@ def get_credential():
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
 load_dotenv('.env')
+
+# Open Google sheet
 client = gspread.authorize(get_credential())
 sheet = client.open("weather").sheet1
+
+# Setup pandas dataframe
+data = sheet.get_all_values()
+headers = data.pop(0)
+df = pandas.DataFrame(data, columns=headers)
 
 
 @app.route('/', methods=["GET"])
 def main_page():
-    #print(sheet.get_all_records())
+    #Do stuff here
 
     return render_template("index.html")
 
