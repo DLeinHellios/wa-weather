@@ -3,5 +3,60 @@
 {% block title %}wa-weather{% endblock %}
 
 {% block content %}
-<p>This is a test page</p>
+
+<div class="chartContainer">
+  <canvas id="avgTempChart"></canvas>
+</div>
+
+
+<script src="{{ url_for('static', filename='js/func.js') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  var ctxAMT = document.getElementById('avgTempChart').getContext('2d');
+  var chartAMT = new Chart(ctxAMT, {
+    type: 'line',
+
+    data: {
+      labels: MONTHS,
+
+      datasets: [
+        {%  for year,averages in avgTempData.items()  %}
+        {
+          label: {{ year }},
+          data: {{ averages }},
+          borderColor: getColor()
+        },
+        {% endfor %}
+      ]
+    },
+
+    options: {
+      plugins: {
+          title: {
+              display: true,
+              text: 'Average Monthly Temperature',
+              align: 'start',
+              font: {
+                size: 16
+              }
+          }
+      },
+
+      scales: {
+        y: {
+          ticks: {
+            // Add °F to each value
+            callback: function(value, index, values) {
+              return value + "°F";
+            }
+          }
+        }
+
+      }
+    }
+  });
+
+</script>
 {% endblock %}

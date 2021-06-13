@@ -1,8 +1,8 @@
-import json, os, ast
+import json, os, gspread
 from flask import Flask, render_template, redirect, url_for
 from google.oauth2 import service_account
 from dotenv import load_dotenv
-import gspread, pandas
+import pandas as pd
 
 
 def get_credential():
@@ -35,6 +35,59 @@ def get_credential():
     return scoped_credential
 
 
+def avg_temp_data(df):
+    '''Builds and returns dict for average monthly temp chart'''
+    avgMonthlyTemp = {}
+
+    dateList = df['Date'].tolist()
+    tempList = df['Temp'].tolist()
+
+
+    currentYear = ''
+    currentMonth = ''
+    tempHolder = []
+
+    for entry in range(len(dateList)):
+        if dateList[entry] != '' and tempList[entry] != '':
+            splitDate = dateList[entry].split('/')
+
+            if splitDate[2] == currentYear:
+                if splitDate[0] == currentMonth:
+                    # Add temp to holding list
+                    tempHolder.append(int(tempList[entry]))
+
+                else:
+                    if tempHolder != []:
+                        # Append average to dictionary value for current year
+                        avgMonthlyTemp[currentYear][currentMonth] = (str(round(sum(tempHolder) / len(tempHolder))))
+
+                    currentMonth = splitDate[0]
+                    tempHolder = [int(tempList[entry])]
+
+            else:
+                if tempHolder != []:
+                    avgMonthlyTemp[currentYear][currentMonth] = (str(round(sum(tempHolder) / len(tempHolder))))
+
+                avgMonthlyTemp[splitDate[2]] = {str(key):'' for key in range(1,13)}
+                currentYear = splitDate[2]
+                currentMonth = splitDate[0]
+                tempHolder = [int(tempList[entry])]
+
+    # Add last value
+    avgMonthlyTemp[currentYear][currentMonth] = (str(round(sum(tempHolder) / len(tempHolder))))
+
+
+
+    # Turn averages from dicts to lists
+    for key, value in avgMonthlyTemp.items():
+        newValue = f'[{",".join(list(value.values()))}]'
+        avgMonthlyTemp[key] = newValue
+
+
+
+    return avgMonthlyTemp
+
+
 # Setup
 app = Flask(__name__)
 app.config.from_pyfile('config.py')
@@ -44,17 +97,17 @@ load_dotenv('.env')
 client = gspread.authorize(get_credential())
 sheet = client.open("weather").sheet1
 
-# Setup pandas dataframe
-data = sheet.get_all_values()
-headers = data.pop(0)
-df = pandas.DataFrame(data, columns=headers)
-
 
 @app.route('/', methods=["GET"])
 def main_page():
-    #Do stuff here
+    # Setup pandas dataframe
+    data = sheet.get_all_values()
+    headers = data.pop(0)
+    rawData = pd.DataFrame(data, columns=headers)
 
-    return render_template("index.html")
+    avgMonthlyTemp = avg_temp_data(rawData)
+
+    return render_template("index.html", avgTempData = avgMonthlyTemp)
 
 
 @app.errorhandler(404)

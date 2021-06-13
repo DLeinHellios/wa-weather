@@ -5,3 +5,8 @@ body {
 	padding: 0px;
 	margin: 0px;
 }
+
+.chartContainer {
+	max-width: 1000px;
+	margin: auto;
+}
